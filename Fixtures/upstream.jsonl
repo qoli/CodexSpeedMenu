@@ -1,0 +1,12 @@
+{"payload":{"id":"019ffb1f-f334-7e91-9a25-08d5e9e40d42","originator":"Codex Desktop"},"timestamp":"2026-08-13T12:00:00.000Z","type":"session_meta"}
+{"payload":{"turn_id":"019ffb20-1111-7111-8111-111111111111","type":"task_started"},"timestamp":"2026-08-13T12:00:00.100Z","type":"event_msg"}
+{"payload":{"effort":"high","model":"gpt-test","turn_id":"019ffb20-1111-7111-8111-111111111111"},"timestamp":"2026-08-13T12:00:00.200Z","type":"turn_context"}
+{"payload":{"content":"private prompt","role":"user","type":"message"},"timestamp":"2026-08-13T12:00:01.000Z","type":"response_item"}
+{"payload":{"summary":[],"type":"reasoning"},"timestamp":"2026-08-13T12:00:03.000Z","type":"response_item"}
+{"payload":{"call_id":"call-1","name":"exec","type":"custom_tool_call"},"timestamp":"2026-08-13T12:00:05.000Z","type":"response_item"}
+{"payload":{"call_id":"call-1","type":"custom_tool_call_output"},"timestamp":"2026-08-13T12:00:15.000Z","type":"response_item"}
+{"payload":{"info":{"last_token_usage":{"cache_write_input_tokens":100,"cached_input_tokens":800,"input_tokens":1000,"output_tokens":100,"reasoning_output_tokens":40,"total_tokens":1100},"total_token_usage":{"cache_write_input_tokens":100,"cached_input_tokens":800,"input_tokens":1000,"output_tokens":100,"reasoning_output_tokens":40,"total_tokens":1100}},"type":"token_count"},"timestamp":"2026-08-13T12:00:15.001Z","type":"event_msg"}
+{"payload":{"summary":[],"type":"reasoning"},"timestamp":"2026-08-13T12:00:17.001Z","type":"response_item"}
+{"payload":{"content":[],"role":"assistant","type":"message"},"timestamp":"2026-08-13T12:00:19.001Z","type":"response_item"}
+{"payload":{"info":{"last_token_usage":{"cache_write_input_tokens":100,"cached_input_tokens":800,"input_tokens":1000,"output_tokens":80,"reasoning_output_tokens":20,"total_tokens":1080},"total_token_usage":{"cache_write_input_tokens":100,"cached_input_tokens":800,"input_tokens":1000,"output_tokens":80,"reasoning_output_tokens":20,"total_tokens":1080}},"type":"token_count"},"timestamp":"2026-08-13T12:00:19.002Z","type":"event_msg"}
+{"payload":{"turn_id":"019ffb20-1111-7111-8111-111111111111","type":"task_complete"},"timestamp":"2026-08-13T12:00:19.010Z","type":"event_msg"}

@@ -1,0 +1,56 @@
+name: CodexSpeedMenu
+options:
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: WQY45CL427
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_APP_SANDBOX: NO
+    OTHER_CODE_SIGN_FLAGS: --timestamp
+  configs:
+    Release:
+      ONLY_ACTIVE_ARCH: NO
+targets:
+  SpeedCore:
+    type: library.static
+    platform: macOS
+    sources: [Sources/SpeedCore]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cc.ronniewong.CodexSpeedMenu.SpeedCore
+        CODE_SIGNING_ALLOWED: NO
+        SKIP_INSTALL: YES
+  CodexSpeedMenu:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/CodexSpeedMenu
+      - path: Assets/AppIcon.icns
+        buildPhase: resources
+      - path: Fixtures/upstream.jsonl
+        buildPhase: resources
+      - path: LICENSE
+        buildPhase: resources
+      - path: THIRD_PARTY_NOTICES.md
+        buildPhase: resources
+    dependencies:
+      - target: SpeedCore
+    settings:
+      base:
+        PRODUCT_NAME: Codex Speed
+        EXECUTABLE_NAME: CodexSpeedMenu
+        PRODUCT_BUNDLE_IDENTIFIER: cc.ronniewong.CodexSpeedMenu
+        INFOPLIST_FILE: App/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_IDENTITY: Apple Development
+        SKIP_INSTALL: NO
+schemes:
+  CodexSpeedMenu:
+    build:
+      targets:
+        CodexSpeedMenu: all
+    archive:
+      config: Release

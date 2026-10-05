@@ -1,0 +1,5 @@
+dist/
+codex-tps-*.csv
+codex-tps-*.png
+.DS_Store
+outputs/

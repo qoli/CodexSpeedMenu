@@ -1,0 +1,10 @@
+.build*/
+.DS_Store
+.swiftpm/
+Evidence/
+dist/
+*.xcodeproj/xcuserdata/
+xcuserdata/
+Evidence/go-cache/
+Evidence/Evidence/
+dist/State/
