@@ -11,6 +11,7 @@
 		3F73015A971614C6AB01FCFB /* THIRD_PARTY_NOTICES.md in Resources */ = {isa = PBXBuildFile; fileRef = 007C3F46294B5F9C8D5FDDEC /* THIRD_PARTY_NOTICES.md */; };
 		6AADB495E528D1074D24847B /* upstream.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = 71C892E02B126C8149B33A7C /* upstream.jsonl */; };
 		7AD916B828AB772E47E367FE /* Tailer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14B0EF08718FE4F11389DBE8 /* Tailer.swift */; };
+		7D69683DBCE0C5D37E281081 /* IdleSleepLease.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CB691766E33915975BFDCA /* IdleSleepLease.swift */; };
 		932BD01FCFE33EA5FF822EB4 /* libSpeedCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 16BF84AE71D00CF3299AD49E /* libSpeedCore.a */; };
 		98FC9192D598F34A08D6E3AC /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 18EBDC677236E245DEB5C674 /* LICENSE */; };
 		C666A9CA9E88666CD4D6C300 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = B58BB08CDF12F13D76183F2D /* main.swift */; };
@@ -39,6 +40,7 @@
 		71C892E02B126C8149B33A7C /* upstream.jsonl */ = {isa = PBXFileReference; path = upstream.jsonl; sourceTree = "<group>"; };
 		AC9A0A798B65368EC8B85414 /* Reducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reducer.swift; sourceTree = "<group>"; };
 		B58BB08CDF12F13D76183F2D /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		D0CB691766E33915975BFDCA /* IdleSleepLease.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleSleepLease.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +75,7 @@
 		442BD34C6EAE58E42B354411 /* CodexSpeedMenu */ = {
 			isa = PBXGroup;
 			children = (
+				D0CB691766E33915975BFDCA /* IdleSleepLease.swift */,
 				B58BB08CDF12F13D76183F2D /* main.swift */,
 			);
 			name = CodexSpeedMenu;
@@ -239,6 +242,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7D69683DBCE0C5D37E281081 /* IdleSleepLease.swift in Sources */,
 				C666A9CA9E88666CD4D6C300 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -148,7 +148,12 @@ final class MonitorIntegrationTests: XCTestCase {
         let log = root.appendingPathComponent("rollout-test.jsonl")
         try Data().write(to: log)
         let monitor = Monitor(roots: [root.path])
-        monitor.onDiagnostic = { print($0) }
+        let diagnosticLock = NSLock()
+        var diagnostics: [MonitorDiagnostic] = []
+        monitor.onDiagnostic = {
+            diagnosticLock.lock(); diagnostics.append($0); diagnosticLock.unlock()
+            print("\($0.level) \($0.message)")
+        }
         print("root \(root.path) resolved \(root.resolvingSymlinksInPath().path)")
         let ready = expectation(description: "startup"); let observed = expectation(description: "sample")
         monitor.onStatus = { _ in ready.fulfill() }
@@ -164,5 +169,39 @@ final class MonitorIntegrationTests: XCTestCase {
         XCTAssertEqual(stats["bytesRead"], try helper.fixture().count)
         XCTAssertGreaterThan(stats["notifications"]!, 0)
         XCTAssertEqual(stats["errors"], 0)
+        diagnosticLock.lock(); let captured = diagnostics; diagnosticLock.unlock()
+        XCTAssertTrue(captured.contains { $0.message.contains("source_added source=rollout-test.jsonl") })
+        XCTAssertTrue(captured.contains { $0.message.contains("watch_started source=rollout-test.jsonl") })
+        XCTAssertTrue(captured.contains { $0.message.contains("read_complete source=rollout-test.jsonl") && $0.message.contains("samples=2") })
+        XCTAssertTrue(captured.contains { $0.message.contains("sample_selected thread=019ffb1f-f334-7e91-9a25-08d5e9e40d42") })
+        XCTAssertFalse(captured.contains { $0.message.contains(root.path) })
+    }
+
+    func testSafetyScanDiagnosesPendingBytesWithoutNotification() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let log = root.appendingPathComponent("rollout-missed.jsonl")
+        try Data().write(to: log)
+        let monitor = Monitor(roots: [root.path])
+        let monitoredPath = URL(fileURLWithPath: monitor.roots[0]).appendingPathComponent(log.lastPathComponent).path
+        var diagnostics: [MonitorDiagnostic] = []
+        monitor.onDiagnostic = { diagnostics.append($0) }
+        monitor.queue.sync {
+            monitor.add(monitoredPath, reason: "test")
+            monitor.dirty.removeAll()
+        }
+        let helper = SpeedCoreTests()
+        try helper.append(helper.fixture(), to: log)
+        monitor.queue.sync {
+            // Model the failure boundary directly: bytes exist, but no path is queued.
+            monitor.dirty.removeAll()
+            monitor.lastScan = Date(timeIntervalSinceNow: -301)
+            monitor.tick()
+        }
+        monitor.stop()
+        XCTAssertTrue(diagnostics.contains {
+            $0.level == .info && $0.message.contains("missed_notification source=rollout-missed.jsonl offset=0 size=")
+        }, diagnostics.map(\.message).joined(separator: "\n"))
     }
 }

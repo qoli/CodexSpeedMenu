@@ -6,7 +6,7 @@ A native macOS menu bar app for completed Codex response speed. Requires macOS 1
 
 ## Install
 
-Download `Codex-Speed-1.0.4.zip` from the [latest GitHub Release](https://github.com/qoli/CodexSpeedMenu/releases/latest), unzip it, and move **Codex Speed.app** to Applications. Open the app to show its menu bar item. Version 1.0.4 is Developer ID signed and notarized by Apple, with the notarization ticket stapled to the app.
+Download `Codex-Speed-1.1.0.zip` from the [latest GitHub Release](https://github.com/qoli/CodexSpeedMenu/releases/latest), unzip it, and move **Codex Speed.app** to Applications. Open the app to show its menu bar item. Version 1.1.0 is Developer ID signed and notarized by Apple, with the notarization ticket stapled to the app.
 
 The release includes `SHA256SUMS` for verifying the download:
 
@@ -22,11 +22,18 @@ The Menu Bar shows only a number (for example `20.0`) for the most recently
 completed valid model response's effective output token/s, or `idle` when unknown.
 It includes reasoning tokens already included in output usage.
 It does not represent pure decode speed. Click for completion time, thread/turn,
-model, rollout filename and Quit. Around 60 seconds later (checked every 10 seconds), the Menu Bar clears to
+model, rollout filename, an optional **Keep Mac Awake for Codex** checkbox and Quit. Around 60 seconds later (checked every 10 seconds), the Menu Bar clears to
 `idle`; the last completed sample remains explicitly dated in the menu.
 The number is always a completed response measurement, not live streaming.
 Menu information rows have a maximum text width of 420 points. Longer values are shortened
 in the middle with `…`; hovering shows the complete value in the native tooltip.
+
+The keep-awake checkbox is off by default and persists across launches. When enabled,
+each newly completed speed sample acquires or renews a five-minute idle-system-sleep
+lease. Enabling it while a fresh speed is visible starts the lease immediately. With
+no newer sample the lease expires naturally; disabling it or quitting releases it
+immediately. The display may still sleep, and explicit sleep, lid-close and shutdown
+behavior are unchanged.
 
 Only the current user's `~/.codex/sessions` and necessary `~/.codex/archived_sessions` JSONL files
 are read. There is no network component, web integration, IPC, tokenizer, quota
@@ -118,6 +125,31 @@ Normal runtime writes no progress files or test data. The explicit native
 `--ui-smoke` flag injects the embedded public upstream fixture, captures the actual
 AppKit status button for waiting, speed and expiry, and invokes the Quit menu
 item. Its `Evidence` directory is beside the app. This test covers native UI and
-termination; it does not prove a fresh production response measurement.
+termination, the keep-awake checkbox and assertion acquisition/release; it does not
+prove a fresh production response measurement.
+
+## Diagnostics
+
+Codex Speed records monitor, UI and idle-sleep lease decision points in macOS
+Unified Logging under the `cc.ronniewong.CodexSpeedMenu` subsystem. Logs contain rollout filenames,
+thread IDs, byte offsets, counters, timestamps and error descriptions. They never
+contain prompts, response text, tool output, credentials or token contents.
+
+For a live reproduction, start streaming before the failure:
+
+```sh
+/usr/bin/log stream --style compact --level debug \
+  --predicate 'subsystem == "cc.ronniewong.CodexSpeedMenu"'
+```
+
+To inspect persisted information after a failure:
+
+```sh
+/usr/bin/log show --last 15m --style compact --info \
+  --predicate 'subsystem == "cc.ronniewong.CodexSpeedMenu"'
+```
+
+The trace distinguishes source discovery, vnode/FSEvents delivery, reads,
+oversized-line or truncation resets, sample selection, and the final UI state.
 
 See [the 1.0.4 validation summary](docs/VALIDATION-1.0.4.md) for the release's signing and acceptance evidence. Detailed build and diagnostic output remains local in the ignored `Evidence/` directory.
