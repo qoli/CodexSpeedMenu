@@ -173,7 +173,7 @@ final class MonitorIntegrationTests: XCTestCase {
         XCTAssertTrue(captured.contains { $0.message.contains("source_added source=rollout-test.jsonl") })
         XCTAssertTrue(captured.contains { $0.message.contains("watch_started source=rollout-test.jsonl") })
         XCTAssertTrue(captured.contains { $0.message.contains("read_complete source=rollout-test.jsonl") && $0.message.contains("samples=2") })
-        XCTAssertTrue(captured.contains { $0.message.contains("sample_selected thread=019ffb1f-f334-7e91-9a25-08d5e9e40d42") })
+        XCTAssertTrue(captured.contains { $0.message.contains("sample_selected agent=Codex thread=019ffb1f-f334-7e91-9a25-08d5e9e40d42") })
         XCTAssertFalse(captured.contains { $0.message.contains(root.path) })
     }
 

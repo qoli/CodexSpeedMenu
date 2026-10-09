@@ -24,9 +24,13 @@ private func canonicalPath(_ path: String) -> String {
 }
 
 public final class Monitor {
-    public static let roots = ["sessions", "archived_sessions"].map {
+    public static let codexRoots = ["sessions", "archived_sessions"].map {
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex/\($0)").path
     }
+    public static let piRoots = [
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".pi/agent/sessions").path
+    ]
+    public static let roots = codexRoots + piRoots
     public let queue = DispatchQueue(label: "CodexSpeedMenu.reader", qos: .utility)
     public var onSample: ((Sample) -> Void)?
     public var onDiagnostic: ((MonitorDiagnostic) -> Void)?
@@ -232,7 +236,7 @@ public final class Monitor {
         }
         if let latest {
             newest = latest
-            diagnose(.info, "sample_selected thread=\(latest.threadID) source=\(sourceName(latest.source)) completed=\(latest.completedAt.timeIntervalSince1970) usage=\(latest.usageAt.timeIntervalSince1970) output=\(latest.outputTokens) tps=\(latest.tps)")
+            diagnose(.info, "sample_selected agent=\(latest.agent.rawValue) thread=\(latest.threadID) source=\(sourceName(latest.source)) completed=\(latest.completedAt.timeIntervalSince1970) usage=\(latest.usageAt.timeIntervalSince1970) output=\(latest.outputTokens) tps=\(latest.tps)")
             onSample?(latest)
         }
     }

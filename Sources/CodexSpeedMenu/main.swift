@@ -25,7 +25,7 @@ if let index = args.firstIndex(of: "--observe-real"), args.count > index + 1 {
     let seconds = Double(args[index + 1]) ?? 30
     let monitor = Monitor()
     monitor.onDiagnostic = record
-    monitor.onSample = { s in print("sample \(s.threadID) \(s.tps) token/s") }
+    monitor.onSample = { s in print("sample \(s.agent.rawValue) \(s.threadID) \(s.tps) token/s") }
     monitor.start()
     let begin = Date()
     while Date().timeIntervalSince(begin) < seconds {
@@ -53,12 +53,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         keepAwakeEnabled = smoke ? false : UserDefaults.standard.bool(forKey: keepAwakePreferenceKey)
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
-        item.button?.setAccessibilityLabel("Codex response speed")
+        item.button?.setAccessibilityLabel("Coding agent response speed")
         let menu = NSMenu(); menu.delegate = self; item.menu = menu
         monitor = Monitor()
         monitor.onDiagnostic = record
         monitor.onSample = { [weak self] value in
-            uiLog.info("sample_received thread=\(value.threadID, privacy: .public) completed=\(value.completedAt.timeIntervalSince1970) tps=\(value.tps)")
+            uiLog.info("sample_received agent=\(value.agent.rawValue, privacy: .public) thread=\(value.threadID, privacy: .public) completed=\(value.completedAt.timeIntervalSince1970) tps=\(value.tps)")
             DispatchQueue.main.async {
                 guard let self, !self.smoke else { return }
                 self.accept(value)
@@ -96,7 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func render() {
         let fresh = sample.map { Date().timeIntervalSince($0.completedAt) < 60 } ?? false
         item.button?.title = fresh ? String(format: "%.1f", sample!.tps) : "idle"
-        item.button?.toolTip = sample.map { "Last completed response: \(String(format: "%.1f", $0.tps)) token/s • \($0.threadID) • \($0.completedAt.formatted())" } ?? status
+        item.button?.toolTip = sample.map { "\($0.agent.rawValue) last completed response: \(String(format: "%.1f", $0.tps)) token/s • \($0.threadID) • \($0.completedAt.formatted())" } ?? status
         let nextState: String
         if fresh, let sample {
             nextState = "sample:\(sample.threadID):\(sample.completedAt.timeIntervalSince1970)"
@@ -128,15 +128,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         if let s = sample {
             text(String(format: "Last completed: %.1f token/s", s.tps))
+            text("Source \(s.agent.rawValue)")
             text("Completed \(s.completedAt.formatted(date: .abbreviated, time: .standard))")
-            text("Thread \(s.threadID)")
+            text("\(s.agent == .pi ? "Session" : "Thread") \(s.threadID)")
             if !s.turnID.isEmpty { text("Turn \(s.turnID)") }
             if !s.model.isEmpty { text(s.model) }
             text(URL(fileURLWithPath: s.source).lastPathComponent)
         } else { text(status) }
         text("Effective output TPS · includes reasoning")
         menu.addItem(.separator())
-        let keepAwake = NSMenuItem(title: "Keep Mac Awake for Codex", action: #selector(toggleKeepAwake(_:)), keyEquivalent: "")
+        let keepAwake = NSMenuItem(title: "Keep Mac Awake for Codex & Pi", action: #selector(toggleKeepAwake(_:)), keyEquivalent: "")
         keepAwake.target = self
         keepAwake.state = keepAwakeEnabled ? .on : .off
         menu.addItem(keepAwake)
@@ -168,7 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         func toggleKeepAwakeMenuItem() {
             menuWillOpen(item.menu!)
-            if let index = item.menu!.items.firstIndex(where: { $0.title == "Keep Mac Awake for Codex" }) {
+            if let index = item.menu!.items.firstIndex(where: { $0.title == "Keep Mac Awake for Codex & Pi" }) {
                 item.menu!.performActionForItem(at: index)
             }
         }

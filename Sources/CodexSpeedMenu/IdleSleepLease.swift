@@ -29,7 +29,7 @@ final class IdleSleepLease {
         if activity == nil {
             activity = processInfo.beginActivity(
                 options: .idleSystemSleepDisabled,
-                reason: "Recent Codex response"
+                reason: "Recent coding agent response"
             )
             log.info("idle_sleep_lease_acquired duration_seconds=\(Int(self.duration))")
         } else {

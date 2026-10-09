@@ -13,11 +13,15 @@ public final class Tailer {
     var discarding = false
     public init(path: String, fromEnd: Bool) throws {
         self.path = path
-        // Filename UUID is only a fallback. Session metadata / explicit thread_id supersedes it.
-        let matches = path.components(separatedBy: "/").last ?? path
-        let regex = try! NSRegularExpression(pattern: "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
-        let match = regex.firstMatch(in: matches, range: NSRange(matches.startIndex..., in: matches))
-        let id = match.flatMap { Range($0.range, in: matches).map { String(matches[$0]) } } ?? matches
+        // Filename identity is only a fallback. Session metadata / explicit thread_id supersedes it.
+        let filename = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
+        let uuid = try! NSRegularExpression(pattern: "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+        let uuidMatch = uuid.firstMatch(in: filename, range: NSRange(filename.startIndex..., in: filename))
+        let piPrefix = try! NSRegularExpression(pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{3}Z_(.+)$")
+        let piMatch = piPrefix.firstMatch(in: filename, range: NSRange(filename.startIndex..., in: filename))
+        let id = uuidMatch.flatMap { Range($0.range, in: filename).map { String(filename[$0]) } }
+            ?? piMatch.flatMap { Range($0.range(at: 1), in: filename).map { String(filename[$0]) } }
+            ?? filename
         reducer = Reducer(source: path, threadID: id)
         let fd = open(path, O_RDONLY | O_NOFOLLOW)
         guard fd >= 0 else { throw POSIXError(.EACCES) }; defer { close(fd) }

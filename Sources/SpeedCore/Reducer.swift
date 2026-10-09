@@ -1,6 +1,12 @@
 import Foundation
 
+public enum AgentSource: String, Codable, Equatable {
+    case codex = "Codex"
+    case pi = "Pi"
+}
+
 public struct Sample: Codable, Equatable {
+    public var agent: AgentSource
     public var threadID: String
     public var turnID: String
     public var responseID: String?
@@ -47,6 +53,13 @@ public final class Reducer {
               let text = row["timestamp"] as? String,
               let timestamp = fractional.date(from: text) ?? plain.date(from: text),
               let type = row["type"] as? String else { invalidate(); return nil }
+        if type == "session", let id = row["id"] as? String {
+            threadID = id
+            return nil
+        }
+        if type == "message", let message = row["message"] as? [String: Any], message["role"] as? String == "assistant" {
+            return consumePiAssistant(row: row, message: message, completedAt: timestamp)
+        }
         let p = row["payload"] as? [String: Any] ?? [:]
         let kind = p["type"] as? String ?? ""
         if let explicit = (p["thread_id"] ?? row["thread_id"]) as? String {
@@ -93,7 +106,7 @@ public final class Reducer {
                 var sample: Sample?
                 if reliable, let start, let end, end > start, output > 0 {
                     let matched = identity.flatMap { $0.turn == turnID && $0.at >= end && $0.usage == signature(usage) ? $0.id : nil }
-                    sample = Sample(threadID: threadID, turnID: turnID, responseID: matched, model: model, startedAt: start, completedAt: end, usageAt: timestamp, outputTokens: output, source: source)
+                    sample = Sample(agent: .codex, threadID: threadID, turnID: turnID, responseID: matched, model: model, startedAt: start, completedAt: end, usageAt: timestamp, outputTokens: output, source: source)
                 }
                 // A witnessed old usage boundary is also a known start for the NEXT response,
                 // even after cold EOF startup. The current incomplete window is never emitted.
@@ -103,5 +116,21 @@ public final class Reducer {
         default: break
         }
         return nil
+    }
+
+    private func consumePiAssistant(row: [String: Any], message: [String: Any], completedAt: Date) -> Sample? {
+        guard let stopReason = message["stopReason"] as? String,
+              !["pending", "error", "aborted", "deferred"].contains(stopReason),
+              let milliseconds = (message["timestamp"] as? NSNumber)?.doubleValue,
+              let usage = message["usage"] as? [String: Any],
+              let outputTokens = (usage["output"] as? NSNumber)?.intValue,
+              outputTokens > 0 else { return nil }
+        let startedAt = Date(timeIntervalSince1970: milliseconds / 1000)
+        guard completedAt > startedAt else { return nil }
+        let provider = message["provider"] as? String ?? ""
+        let modelID = message["responseModel"] as? String ?? message["model"] as? String ?? ""
+        let displayModel = [provider, modelID].filter { !$0.isEmpty }.joined(separator: "/")
+        let responseID = message["responseId"] as? String ?? row["id"] as? String
+        return Sample(agent: .pi, threadID: threadID, turnID: "", responseID: responseID, model: displayModel, startedAt: startedAt, completedAt: completedAt, usageAt: completedAt, outputTokens: outputTokens, source: source)
     }
 }

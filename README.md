@@ -2,11 +2,11 @@
 
 <img src="Assets/AppIcon.png" width="96" alt="Codex Speed app icon">
 
-A native macOS menu bar app for completed Codex response speed. Requires macOS 14 or later. The release is universal (Apple silicon and Intel), with a custom app icon and a compact text-only menu bar display.
+A native macOS menu bar app for completed Codex and Pi Coding Agent response speed. Requires macOS 14 or later. The release is universal (Apple silicon and Intel), with a custom app icon and a compact text-only menu bar display.
 
 ## Install
 
-Download `Codex-Speed-1.1.0.zip` from the [latest GitHub Release](https://github.com/qoli/CodexSpeedMenu/releases/latest), unzip it, and move **Codex Speed.app** to Applications. Open the app to show its menu bar item. Version 1.1.0 is Developer ID signed and notarized by Apple, with the notarization ticket stapled to the app.
+Download `Codex-Speed-1.2.0.zip` from the [latest GitHub Release](https://github.com/qoli/CodexSpeedMenu/releases/latest), unzip it, and move **Codex Speed.app** to Applications. Open the app to show its menu bar item. Version 1.2.0 is Developer ID signed and notarized by Apple, with the notarization ticket stapled to the app.
 
 The release includes `SHA256SUMS` for verifying the download:
 
@@ -19,10 +19,10 @@ For a source build, open `dist/Codex Speed.app` after running `scripts/build.sh`
 ## Usage
 
 The Menu Bar shows only a number (for example `20.0`) for the most recently
-completed valid model response's effective output token/s, or `idle` when unknown.
-It includes reasoning tokens already included in output usage.
-It does not represent pure decode speed. Click for completion time, thread/turn,
-model, rollout filename, an optional **Keep Mac Awake for Codex** checkbox and Quit. Around 60 seconds later (checked every 10 seconds), the Menu Bar clears to
+completed valid Codex or Pi model response's effective output token/s, or `idle` when unknown.
+The menu identifies the source. The measurement includes reasoning tokens already included in output usage.
+It does not represent pure decode speed. Click for completion time, session/thread/turn,
+model, JSONL filename, an optional **Keep Mac Awake for Codex & Pi** checkbox and Quit. Around 60 seconds later (checked every 10 seconds), the Menu Bar clears to
 `idle`; the last completed sample remains explicitly dated in the menu.
 The number is always a completed response measurement, not live streaming.
 Menu information rows have a maximum text width of 420 points. Longer values are shortened
@@ -35,10 +35,10 @@ no newer sample the lease expires naturally; disabling it or quitting releases i
 immediately. The display may still sleep, and explicit sleep, lid-close and shutdown
 behavior are unchanged.
 
-Only the current user's `~/.codex/sessions` and necessary `~/.codex/archived_sessions` JSONL files
-are read. There is no network component, web integration, IPC, tokenizer, quota
-tracking, model probe, traffic proxy, credentials access or login startup.
-Existing applications, repositories and Codex configuration are untouched.
+Only the current user's `~/.codex/sessions`, necessary `~/.codex/archived_sessions`, and standard `~/.pi/agent/sessions` JSONL files are read. Pi sessions created with `--no-session` have no file to monitor. Custom Pi locations selected through `--session-dir`, `PI_CODING_AGENT_SESSION_DIR`, or `sessionDir` are not discovered automatically.
+There is no network component, web integration, IPC, tokenizer, quota tracking,
+model probe, traffic proxy, credentials access or login startup.
+Existing applications, repositories and Codex or Pi configuration are untouched.
 
 ## Algorithm and boundaries
 
@@ -54,7 +54,9 @@ identity; it never emits a sample or changes the timer. Its response ID is attac
 only when usage/turn/timestamp match; otherwise the filename/thread/turn identify
 the source. Duplicate cumulative usage notifications are ignored.
 
-Each rollout has an independent reducer. The first explicit thread_id binds its
+For Pi session format v3, each persisted completed assistant message is independent. The effective rate is `message.usage.output` divided by the interval from the assistant message's millisecond timestamp to the enclosing session entry's ISO timestamp. Pi defines reasoning as already included in output. Pending, deferred, aborted, errored, zero-output and nonpositive-duration messages are ignored. Other terminal responses, including `stop`, `toolUse` and `length`, are eligible. The session entry is written after Pi's `message_end` handlers, so a slow extension can slightly lower the reported effective rate. Tool-call responses are individual samples rather than a per-user-turn average.
+
+Each Codex rollout and Pi session file has an independent reducer. The first explicit thread_id binds its
 identity without resetting timing, since session_meta.id/session_id can name a
 shared parent. Subsequent explicit thread changes invalidate its pending window. Parallel subagents are never summed into parent throughput.
 When data is missing, malformed, oversized, aborted or has nonpositive duration,
@@ -64,7 +66,7 @@ a sample from an unknown start.
 
 ## Resource bounds
 
-Startup enumerates metadata once and starts every tracked file at its current EOF.
+Startup enumerates metadata once across the Codex and Pi roots and starts every tracked file at its current EOF.
 Only the current byte cursor, bounded incomplete-line bytes and response timing
 exist in process memory. There is no identity/anchor validation or recovery system. Nothing is persisted. Restart starts cold at
 current EOF again; it does not replay records written while the App was stopped.
@@ -90,7 +92,7 @@ are every 5 minutes; dropped-notification recovery scans are limited to once per
 30 seconds. A delayed notification can delay display. New files begin at discovery-time EOF, with subsequent appends read under the
 same budgets.
 
-At most 512 rollouts are tracked, selected by recency. Partial lines are capped at
+At most 512 Codex rollouts and Pi sessions are tracked in total, selected by recency. Partial lines are capped at
 64 KiB each (32 MiB aggregate worst case), plus a bounded read chunk and metadata.
 Oversized lines are skipped through their next newline and invalidate the affected
 window. `.jsonl.zst` archives are not decompressed. Symlink files are rejected;
@@ -101,6 +103,7 @@ window. `.jsonl.zst` archives are not decompressed. Symlink files are rejected;
 ```sh
 scripts/build.sh    # local ad-hoc signed SwiftPM build
 scripts/test.sh     # reducer, tailer and real FSEvents integration tests
+swift run SpeedBench --bounded-pi-real # bounded validation against local real Pi JSONL
 scripts/release.sh  # universal Xcode archive, cloud Developer ID export and notarization
 ```
 
@@ -152,4 +155,4 @@ To inspect persisted information after a failure:
 The trace distinguishes source discovery, vnode/FSEvents delivery, reads,
 oversized-line or truncation resets, sample selection, and the final UI state.
 
-See [the 1.1.0 validation summary](docs/VALIDATION-1.1.0.md) for the release's signing and acceptance evidence. Detailed build and diagnostic output remains local in the ignored `Evidence/` directory.
+See [the 1.2.0 validation summary](docs/VALIDATION-1.2.0.md) for the release's signing and acceptance evidence. Detailed build and diagnostic output remains local in the ignored `Evidence/` directory.

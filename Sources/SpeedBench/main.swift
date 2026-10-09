@@ -1,11 +1,13 @@
 import Foundation
+import Darwin
 import SpeedCore
 
 let project = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 let args = CommandLine.arguments
-if args.contains("--bounded-real") {
+if args.contains("--bounded-real") || args.contains("--bounded-pi-real") {
+    let roots = args.contains("--bounded-pi-real") ? Monitor.piRoots : Monitor.codexRoots
     var paths: [(URL, Date)] = []
-    for root in Monitor.roots.prefix(1) {
+    for root in roots {
         if let e = FileManager.default.enumerator(at: URL(fileURLWithPath: root), includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey], options: [.skipsHiddenFiles]) {
             for case let url as URL in e where url.pathExtension == "jsonl" && url.resolvingSymlinksInPath() == url {
                 if let v = try? url.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey]), v.isRegularFile == true { paths.append((url, v.contentModificationDate ?? .distantPast)) }
@@ -24,9 +26,13 @@ if args.contains("--bounded-real") {
         if begin > 0, let newline = bytes.firstIndex(of: 10) { clean = bytes.subdata(in: (newline + 1)..<bytes.count) } else { clean = bytes }
         let samples = reader.feed(clean); sampleCount += samples.count
         print("file=\(url.lastPathComponent) boundedBytes=\(bytes.count) samples=\(samples.count) discardedLines=\(reader.discardedLines)")
-        if let s = samples.last { print("last thread=\(s.threadID) output=\(s.outputTokens) seconds=\(s.seconds) tps=\(s.tps)") }
+        if let s = samples.last { print("last agent=\(s.agent.rawValue) thread=\(s.threadID) output=\(s.outputTokens) seconds=\(s.seconds) tps=\(s.tps)") }
     }
     print("total boundedBytes=\(total) samples=\(sampleCount)")
+    if args.contains("--bounded-pi-real"), sampleCount == 0 {
+        fputs("no valid completed Pi responses found in the bounded local corpus\n", stderr)
+        exit(2)
+    }
 } else if let index = args.firstIndex(of: "--append"), args.count > index + 1 {
     let seconds = Int(args[index + 1]) ?? 30
     let root = FileManager.default.temporaryDirectory.appendingPathComponent("CodexSpeedMenu-bench-" + UUID().uuidString)
@@ -47,4 +53,4 @@ if args.contains("--bounded-real") {
     RunLoop.current.run(until: Date().addingTimeInterval(3))
     print("expectedBytes=\(batch.count * seconds) expectedSamples=\(200 * seconds)")
     print("final \(monitor.stats())"); monitor.stop()
-} else { print("SpeedBench --bounded-real | --append seconds") }
+} else { print("SpeedBench --bounded-real | --bounded-pi-real | --append seconds") }
