@@ -8,6 +8,7 @@ let runtimeBase = Bundle.main.bundleURL.pathExtension == "app" ? Bundle.main.bun
 let uiEvidence = runtimeBase.appendingPathComponent("Evidence")
 let monitorLog = Logger(subsystem: "cc.ronniewong.CodexSpeedMenu", category: "monitor")
 let uiLog = Logger(subsystem: "cc.ronniewong.CodexSpeedMenu", category: "ui")
+let powerLog = Logger(subsystem: "cc.ronniewong.CodexSpeedMenu", category: "power")
 let keepAwakePreferenceKey = "keepMacAwakeForCodex"
 
 func record(_ diagnostic: MonitorDiagnostic) {
@@ -44,9 +45,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var refresh: Timer?
     var smoke = args.contains("--ui-smoke")
     var keepAwakeEnabled = false
+    var powerEventObservers: [NSObjectProtocol] = []
     let idleSleepLease = IdleSleepLease(duration: args.firstIndex(of: "--ui-smoke-lease-seconds").flatMap {
         args.count > $0 + 1 ? Double(args[$0 + 1]) : nil
-    } ?? 5 * 60)
+    } ?? 5 * 60, log: powerLog)
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         if smoke { try? FileManager.default.createDirectory(at: uiEvidence, withIntermediateDirectories: true) }
@@ -68,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             uiLog.info("status_changed value=\(value, privacy: .public)")
             DispatchQueue.main.async { self?.status = value; self?.render() }
         }
+        startPowerEventLogging()
         render(); monitor.start()
         refresh = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in self?.render() }
         if smoke {
@@ -91,7 +94,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } else {
             idleSleepLease.cancel()
         }
-        uiLog.info("keep_awake_setting enabled=\(enabled) lease_active=\(self.idleSleepLease.isActive)")
+        let sampleAge = sample.map { Date().timeIntervalSince($0.completedAt) } ?? -1
+        uiLog.info("keep_awake_setting enabled=\(enabled) lease_active=\(self.idleSleepLease.isActive) sample_age_seconds=\(sampleAge)")
+    }
+    func startPowerEventLogging() {
+        let center = NSWorkspace.shared.notificationCenter
+        let events: [(Notification.Name, String)] = [
+            (NSWorkspace.screensDidSleepNotification, "screens_did_sleep"),
+            (NSWorkspace.screensDidWakeNotification, "screens_did_wake"),
+            (NSWorkspace.sessionDidResignActiveNotification, "session_did_resign_active"),
+            (NSWorkspace.sessionDidBecomeActiveNotification, "session_did_become_active")
+        ]
+        powerEventObservers = events.map { name, label in
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                self?.recordPowerEvent(label)
+            }
+        }
+    }
+    func recordPowerEvent(_ name: String) {
+        let sampleAge = sample.map { Date().timeIntervalSince($0.completedAt) } ?? -1
+        let leaseExpiresAt = idleSleepLease.expiresAt?.timeIntervalSince1970 ?? 0
+        powerLog.info("workspace_power_event name=\(name, privacy: .public) keep_awake_enabled=\(self.keepAwakeEnabled) lease_active=\(self.idleSleepLease.isActive) sample_age_seconds=\(sampleAge) lease_expires_at=\(leaseExpiresAt)")
     }
     func render() {
         let fresh = sample.map { Date().timeIntervalSince($0.completedAt) < 60 } ?? false
@@ -153,6 +176,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.terminate(nil)
     }
     func applicationWillTerminate(_ notification: Notification) {
+        let center = NSWorkspace.shared.notificationCenter
+        powerEventObservers.forEach(center.removeObserver)
+        powerEventObservers.removeAll()
         refresh?.invalidate(); idleSleepLease.cancel(); monitor.stop()
         if smoke { try? Data("applicationWillTerminate reached\n".utf8).write(to: uiEvidence.appendingPathComponent("quit-termination.txt")) }
     }

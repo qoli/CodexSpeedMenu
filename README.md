@@ -6,7 +6,7 @@ A native macOS menu bar app for completed Codex and Pi Coding Agent response spe
 
 ## Install
 
-Download `Codex-Speed-1.2.0.zip` from the [latest GitHub Release](https://github.com/qoli/CodexSpeedMenu/releases/latest), unzip it, and move **Codex Speed.app** to Applications. Open the app to show its menu bar item. Version 1.2.0 is Developer ID signed and notarized by Apple, with the notarization ticket stapled to the app.
+Download `Codex-Speed-1.2.1.zip` from the [latest GitHub Release](https://github.com/qoli/CodexSpeedMenu/releases/latest), unzip it, and move **Codex Speed.app** to Applications. Open the app to show its menu bar item. Version 1.2.1 is Developer ID signed and notarized by Apple, with the notarization ticket stapled to the app.
 
 The release includes `SHA256SUMS` for verifying the download:
 
@@ -29,11 +29,12 @@ Menu information rows have a maximum text width of 420 points. Longer values are
 in the middle with `…`; hovering shows the complete value in the native tooltip.
 
 The keep-awake checkbox is off by default and persists across launches. When enabled,
-each newly completed speed sample acquires or renews a five-minute idle-system-sleep
+each newly completed speed sample acquires or renews a five-minute idle-display-sleep
 lease. Enabling it while a fresh speed is visible starts the lease immediately. With
 no newer sample the lease expires naturally; disabling it or quitting releases it
-immediately. The display may still sleep, and explicit sleep, lid-close and shutdown
-behavior are unchanged.
+immediately. This is the same power assertion as `caffeinate -d`: it prevents the
+display from turning off due to idle time and therefore also prevents idle system
+sleep. Explicit Lock Screen, sleep, lid-close and shutdown behavior are unchanged.
 
 Only the current user's `~/.codex/sessions`, necessary `~/.codex/archived_sessions`, and standard `~/.pi/agent/sessions` JSONL files are read. Pi sessions created with `--no-session` have no file to monitor. Custom Pi locations selected through `--session-dir`, `PI_CODING_AGENT_SESSION_DIR`, or `sessionDir` are not discovered automatically.
 There is no network component, web integration, IPC, tokenizer, quota tracking,
@@ -133,10 +134,14 @@ prove a fresh production response measurement.
 
 ## Diagnostics
 
-Codex Speed records monitor, UI and idle-sleep lease decision points in macOS
+Codex Speed records monitor, UI and keep-awake lease decision points in macOS
 Unified Logging under the `cc.ronniewong.CodexSpeedMenu` subsystem. Logs contain rollout filenames,
 thread IDs, byte offsets, counters, timestamps and error descriptions. They never
 contain prompts, response text, tool output, credentials or token contents.
+
+Power logs include the requested assertion type, the assertion ID returned by macOS,
+creation or release failures, lease renewal and expiry, plus display sleep/wake and
+login-session active/inactive events with the lease state at that moment.
 
 For a live reproduction, start streaming before the failure:
 
@@ -154,5 +159,6 @@ To inspect persisted information after a failure:
 
 The trace distinguishes source discovery, vnode/FSEvents delivery, reads,
 oversized-line or truncation resets, sample selection, and the final UI state.
+For a system-level snapshot of the active assertion, use `pmset -g assertions`.
 
-See [the 1.2.0 validation summary](docs/VALIDATION-1.2.0.md) for the release's signing and acceptance evidence. Detailed build and diagnostic output remains local in the ignored `Evidence/` directory.
+See [the 1.2.1 validation summary](docs/VALIDATION-1.2.1.md) for the release's signing and acceptance evidence. Detailed build and diagnostic output remains local in the ignored `Evidence/` directory.
