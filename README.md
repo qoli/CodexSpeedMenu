@@ -152,4 +152,4 @@ To inspect persisted information after a failure:
 The trace distinguishes source discovery, vnode/FSEvents delivery, reads,
 oversized-line or truncation resets, sample selection, and the final UI state.
 
-See [the 1.0.4 validation summary](docs/VALIDATION-1.0.4.md) for the release's signing and acceptance evidence. Detailed build and diagnostic output remains local in the ignored `Evidence/` directory.
+See [the 1.1.0 validation summary](docs/VALIDATION-1.1.0.md) for the release's signing and acceptance evidence. Detailed build and diagnostic output remains local in the ignored `Evidence/` directory.
